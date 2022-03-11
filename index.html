@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>Animated Treemap | JSCharting</title>
+  <meta http-equiv="content-type" content="text-html; charset=utf-8" />
+
+  <script src="https://code.jscharting.com/latest/jscharting.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- <script type="text/javascript" src="../jsc/modules/toolbar.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="css/default.css" />-->
+  <style type="text/css">
+
+  </style>
+</head>
+
+<body>
+  <div id="chartDiv" style="max-width: 1850px;height: 900px;margin: 0px auto;"></div>
+
+
+
+
+  <script type="text/javascript">
+    // JS 
+
+   
+  const dateArray = new Array("7/1/2015","8/1/2015","9/1/2015","10/1/2015","11/1/2015","12/1/2015","1/1/2016","2/1/2016","3/1/2016","4/1/2016","5/1/2016","6/1/2016","7/1/2016","8/1/2016","9/1/2016","10/1/2016","11/1/2016","12/1/2016","1/1/2017","2/1/2017","3/1/2017","4/1/2017","5/1/2017","6/1/2017","7/1/2017","8/1/2017","9/1/2017","10/1/2017","11/1/2017","12/1/2017","1/1/2018","2/1/2018","3/1/2018","4/1/2018","5/1/2018","6/1/2018","7/1/2018","8/1/2018","9/1/2018","10/1/2018","11/1/2018","12/1/2018","1/1/2019","2/1/2019","3/1/2019","4/1/2019","5/1/2019","6/1/2019","7/1/2019","8/1/2019","9/1/2019","10/1/2019","11/1/2019","12/1/2019","1/1/2020","2/1/2020","3/1/2020","4/1/2020","5/1/2020","6/1/2020","7/1/2020","8/1/2020","9/1/2020","10/1/2020","11/1/2020","12/1/2020","1/1/2021","2/1/2021","3/1/2021","4/1/2021","5/1/2021","6/1/2021","7/1/2021","8/1/2021","9/1/2021","10/1/2021","11/1/2021","12/1/2021","1/1/2022","2/1/2022","3/1/2022");
+
+    var chart,
+      animationDuration = 4000,
+      regionColors = [
+        '#926dff',
+        '#926dff',
+        '#926dff',
+        '#926dff'
+      ],
+      startYear = 0,
+      endYear = 80;
+
+    JSC.fetch(
+      'https://raw.githubusercontent.com/JamunaaJayashreeS/JamunaaJayashreeS/master/animated%20treemap%20sum.csv'
+    )
+      .then(function (response) {
+        return response.text();
+      })
+      .then(function (text) {
+        var data = JSC.csv2Json(text);
+        chart = renderChart(data);
+      })
+      .catch(function (error) {
+        console.error(error);
+      });
+
+    function renderChart(data) {
+      var stopped = true,
+        timer,
+        frameDelay = 10,
+        currentYear = startYear;
+      return JSC.chart(
+        'chartDiv',
+        {
+          type: 'treemap solid',
+          palette: regionColors,
+          margin_right: 10,
+          chartArea_clipContent: true,
+          title: {
+            label: {
+              margin: { bottom: 40, left: 40 },
+              text:
+                'Interest over months'+dateArray[0]+'  ',
+                style_fontSize:20,
+                
+            }
+          },
+          legend_position:'top'
+          ,
+           palette: {
+          pointValue: '%yValue',
+          colors: ['#F8C1A8', '#EF9198', '#E8608A', '#C0458A', '#8F3192', '#63218F', '#4B186C', '#33104A'],
+          colorBar_axis_defaultTick_label_text: '{%value}'
+           },
+          legend: {
+            template: '%icon %name',
+            position: 'bottom',
+            defaultEntry: { style_fontSize: '15px' }
+          },
+
+          defaultPoint: {
+            tooltip:
+              '%xValue: <b>%yValue</b>',
+              autoHide:true,
+              style_fontSize:40,
+            label: {
+              text:
+                '<b>%id</b></b> %yValue</b>',
+              autoHide: true,
+              style_fontSize:11,
+              
+            }
+          },
+          
+          
+          series: makeSeries(data),
+          toolbar: {
+            defaultItem: {
+              position: 'inside top left',
+              offset: '0,-45',
+              boxVisible: false,
+              margin: 6
+            },
+            items: {
+              // The 1900 label 
+              startLabel: {
+                type: 'label',
+                label: {
+                  text: dateArray[startYear] + '',
+                  style_fontSize: '18px'
+                }
+              },
+              slider: {
+                type: 'range',
+                width: 240,
+                // Reduce chart update frequency to smooth slider action. 
+                debounce: 20,
+                value: startYear,
+                min: startYear,
+                max: endYear,
+                events_change: function (val) {
+                  // Update chart 
+                  moveSlider(val);
+                  // Stop playback if manually handling the slider. 
+                  playPause(true);
+                }
+              },
+              // The 2019 label 
+              endLabel: {
+                type: 'label',
+                label: {
+                  text: dateArray[endYear] + '',
+                  style_fontSize: '18px'
+                }
+              },
+              Pause: {
+                type: 'option',
+                value: false,
+                // Lock width so that it doesnt change when changing between Play and Pause 
+                width: 50,
+                margin: [6, 6, 6, 16],
+                icon_name: 'system/default/pause',
+                label_text: 'Pause',
+                events_change: function (val) {
+                  playPause(!stopped);
+                }
+              }
+            }
+          }
+        },
+        function (c) {
+          // Start the animation once the chart is rendered. 
+          playPause(false, c);
+        }
+      );
+
+      function makeSeries(data) {
+        return JSC.nest()
+          // .key('region')
+          .key('author')
+          .pointRollup(function (key, val) {
+            var value = val[0];
+            var timestamp = new Date(val[0]['date'])
+            var month = (timestamp.getMonth() + 1).toString().padStart(2, '0');
+            var year=timestamp.getFullYear();
+            var date = month+'/'+year
+            console.log(date);
+
+            return {
+              x: key,
+              id: value.author,
+              y: value.views,
+              z:date,
+              attributes_year: value.order + ''
+            };
+          })
+          .series(
+            data.filter(function (item) {
+              return item.order === currentYear;
+            })
+          );
+      }
+
+      function moveSlider(order, cb) {
+        currentYear = Math.round(order);
+
+        // Update chart label and slider 
+        chart
+          .uiItems('slider')
+          .options({ value: currentYear });
+
+        // Update chart title and points. The then: cb update option will execute the callback once the animation is finished. 
+        chart.options(
+          {
+            title_label_text:
+              'Interest over time: <b>' +
+              dateArray[currentYear-1] +
+              '</b> ',
+            series: makeSeries(data),
+            
+          },
+          //Dont animate when moving the slider manually 
+          {
+            then: cb,
+            animation_duration: stopped
+              ? 0
+              : animationDuration
+          }
+        );
+      }
+
+      function animateChart() {
+        if (!stopped) {
+          timer = setTimeout(function () {
+            currentYear += 1;
+            // Stop at the end. 
+            if (currentYear === endYear) {
+              clearInterval(timer);
+              playPause(true);
+              // loop back to starting point if play pressed with slider on the last year 
+            } else if (currentYear >= endYear) {
+              currentYear = startYear;
+              chart
+                .uiItems('slider')
+                .options({ value: currentYear });
+            }
+            moveSlider(currentYear, animateChart);
+          }, frameDelay);
+        }
+      }
+
+      function playPause(val, chrt) {
+        var c = chrt || chart;
+        if (val) {
+          if (!stopped) {
+            // Stop 
+            c.uiItems('Pause').options({
+              label_text: 'Play',
+              icon_name: 'system/default/play'
+            });
+            clearInterval(timer);
+            stopped = true;
+          }
+        } else {
+          if (stopped) {
+            // Play 
+            c.uiItems('Pause').options({
+              label_text: 'Pause',
+              icon_name: 'system/default/pause'
+            });
+            stopped = false;
+            animateChart();
+          }
+        }
+      }
+    } 
+  </script>
+ 
+</body>
+
+</html>
